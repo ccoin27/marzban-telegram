@@ -98,6 +98,7 @@ $SUDO systemctl restart "$SERVICE_NAME"
 
 echo ""
 echo "ExecStart: $PY $MAINPY"
+echo "Не запускайте ./start.sh или python main.py — сервис уже держит один процесс."
 echo "Сервис установлен и запущен: $SERVICE_NAME"
 echo "Статус: sudo systemctl status $SERVICE_NAME"
 echo "Логи:   sudo journalctl -u $SERVICE_NAME -f"

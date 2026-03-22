@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import warnings
+from pathlib import Path
 
 from colorama import Fore, Style, init as colorama_init
 
@@ -16,6 +17,7 @@ from aiogram import BaseMiddleware
 
 from bot.banner_cc import BANNER, CREDIT
 from bot.config import Settings, load_settings
+from bot.instance_lock import acquire as acquire_instance_lock
 from bot.handlers import register_handlers
 from bot.middlewares.admin import AdminMiddleware
 from bot.middlewares.marzban_inject import MarzbanInjectMiddleware
@@ -64,6 +66,8 @@ async def run_bot() -> None:
 
 
 def main() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    acquire_instance_lock(project_root)
     asyncio.run(run_bot())
 
 
