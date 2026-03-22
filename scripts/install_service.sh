@@ -18,7 +18,16 @@ if ! command -v systemctl &>/dev/null; then
 fi
 
 VENV_PATH="${VENV:-$ROOT/.venv}"
+if command -v realpath &>/dev/null; then
+  ROOT="$(realpath "$ROOT")"
+  VENV_PATH="$(realpath "$VENV_PATH")"
+elif readlink -f / &>/dev/null; then
+  ROOT="$(readlink -f "$ROOT")"
+  VENV_PATH="$(readlink -f "$VENV_PATH")"
+fi
+
 PY="$VENV_PATH/bin/python"
+MAINPY="$ROOT/main.py"
 
 if [[ ! -x "$PY" ]]; then
   echo "Нет интерпретатора venv: $PY"
@@ -26,9 +35,22 @@ if [[ ! -x "$PY" ]]; then
   exit 1
 fi
 
+if command -v realpath &>/dev/null; then
+  PY="$(realpath "$PY")"
+  MAINPY="$(realpath "$MAINPY")"
+elif readlink -f / &>/dev/null; then
+  PY="$(readlink -f "$PY")"
+  MAINPY="$(readlink -f "$MAINPY")"
+fi
+
 if [[ ! -f "$ROOT/.env" ]]; then
   echo "Нет $ROOT/.env"
   echo "Сначала: bash setup.sh"
+  exit 1
+fi
+
+if ! "$PY" -c "import urllib3, httpx, aiogram" 2>/dev/null; then
+  echo "В venv нет зависимостей. Установите: $PY -m pip install -r $ROOT/requirements.txt"
   exit 1
 fi
 
@@ -58,13 +80,13 @@ Type=simple
 User=$SERVICE_USER
 WorkingDirectory=$ROOT
 Environment=PYTHONUNBUFFERED=1
-ExecStart=$PY $ROOT/main.py
+Environment=VIRTUAL_ENV=$VENV_PATH
+ExecStart="$PY" "$MAINPY"
 Restart=always
 RestartSec=5
 TimeoutStopSec=30
 Nice=5
 PrivateTmp=yes
-NoNewPrivileges=yes
 
 [Install]
 WantedBy=multi-user.target
@@ -75,6 +97,7 @@ $SUDO systemctl enable "$SERVICE_NAME"
 $SUDO systemctl restart "$SERVICE_NAME"
 
 echo ""
+echo "ExecStart: $PY $MAINPY"
 echo "Сервис установлен и запущен: $SERVICE_NAME"
 echo "Статус: sudo systemctl status $SERVICE_NAME"
 echo "Логи:   sudo journalctl -u $SERVICE_NAME -f"
