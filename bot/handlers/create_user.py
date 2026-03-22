@@ -5,6 +5,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from bot.config import Settings
 from bot.keyboards.inline import back_menu_kb, create_expire_kb, create_traffic_kb, user_actions_kb
 from bot.states import CreateUserState
 from bot.utils.format import fmt_user_card
@@ -71,7 +72,7 @@ async def cb_new_expire(cq: CallbackQuery, mb: MarzbanClient) -> None:
 
 
 @router.callback_query(F.data.startswith("n:t:"))
-async def cb_new_traffic(cq: CallbackQuery, mb: MarzbanClient) -> None:
+async def cb_new_traffic(cq: CallbackQuery, mb: MarzbanClient, settings: Settings) -> None:
     try:
         username, days, traffic = _parse_nt(cq.data)
     except (ValueError, IndexError):
@@ -99,7 +100,7 @@ async def cb_new_traffic(cq: CallbackQuery, mb: MarzbanClient) -> None:
         await cq.answer(f"Ошибка: {e}", show_alert=True)
         return
     await cq.message.edit_text(
-        fmt_user_card(u),
+        fmt_user_card(u, settings.marzban_base_url),
         reply_markup=user_actions_kb(username),
     )
     await cq.answer("Создано")

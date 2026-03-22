@@ -13,6 +13,20 @@ def fmt_bytes(n: int | float) -> str:
     return f"{int(n)} Б"
 
 
+def subscription_full_url(sub: str, marzban_base_url: str) -> str:
+    s = (sub or "").strip()
+    if not s:
+        return ""
+    if s.startswith(("http://", "https://")):
+        return s
+    base = (marzban_base_url or "").strip().rstrip("/")
+    if not base:
+        return s
+    if s.startswith("/"):
+        return base + s
+    return f"{base}/{s}"
+
+
 def fmt_expire(ts: Any) -> str:
     if ts is None or ts == 0:
         return "без срока"
@@ -23,7 +37,7 @@ def fmt_expire(ts: Any) -> str:
     return dt.datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M UTC")
 
 
-def fmt_user_card(d: dict[str, Any]) -> str:
+def fmt_user_card(d: dict[str, Any], marzban_base_url: str) -> str:
     lines = [
         f"Пользователь: <code>{d.get('username','')}</code>",
         f"Статус: <b>{d.get('status','')}</b>",
@@ -33,6 +47,7 @@ def fmt_user_card(d: dict[str, Any]) -> str:
     ]
     sub = d.get("subscription_url") or ""
     if sub:
+        sub = subscription_full_url(sub, marzban_base_url)
         lines.append("")
         lines.append(f"Ссылка: <code>{sub}</code>")
     return "\n".join(lines)

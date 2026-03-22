@@ -14,7 +14,7 @@ from bot.keyboards.inline import (
 )
 from bot.state_store import user_search
 from bot.user_cache import clear as clear_user_cache, get_all_users
-from bot.utils.format import fmt_bytes, fmt_user_card
+from bot.utils.format import fmt_bytes, fmt_user_card, subscription_full_url
 from bot.utils.qr_png import subscription_qr_png
 from services.marzban_client import MarzbanClient, MarzbanError
 
@@ -148,7 +148,7 @@ async def cb_users_search(cq: CallbackQuery, mb: MarzbanClient, settings: Settin
 
 
 @router.callback_query(F.data.startswith("u:o:"))
-async def cb_user_open(cq: CallbackQuery, mb: MarzbanClient) -> None:
+async def cb_user_open(cq: CallbackQuery, mb: MarzbanClient, settings: Settings) -> None:
     username = cq.data[4:]
     try:
         u = await mb.user(username)
@@ -156,14 +156,14 @@ async def cb_user_open(cq: CallbackQuery, mb: MarzbanClient) -> None:
         await cq.answer(f"Ошибка: {e}", show_alert=True)
         return
     await cq.message.edit_text(
-        fmt_user_card(u),
+        fmt_user_card(u, settings.marzban_base_url),
         reply_markup=user_actions_kb(username),
     )
     await cq.answer()
 
 
 @router.callback_query(F.data.startswith("u:s:"))
-async def cb_user_sub(cq: CallbackQuery, mb: MarzbanClient) -> None:
+async def cb_user_sub(cq: CallbackQuery, mb: MarzbanClient, settings: Settings) -> None:
     username = cq.data[4:]
     try:
         u = await mb.user(username)
@@ -174,6 +174,7 @@ async def cb_user_sub(cq: CallbackQuery, mb: MarzbanClient) -> None:
     if not sub:
         await cq.answer("Нет ссылки", show_alert=True)
         return
+    sub = subscription_full_url(sub, settings.marzban_base_url)
     await cq.message.answer(
         f"Подписка <code>{html.escape(username)}</code>:\n<code>{html.escape(sub)}</code>"
     )
@@ -210,31 +211,31 @@ async def cb_user_links(cq: CallbackQuery, mb: MarzbanClient) -> None:
 
 
 @router.callback_query(F.data.startswith("u:r:"))
-async def cb_user_reset(cq: CallbackQuery, mb: MarzbanClient) -> None:
+async def cb_user_reset(cq: CallbackQuery, mb: MarzbanClient, settings: Settings) -> None:
     username = cq.data[4:]
     try:
         u = await mb.reset_user_usage(username)
     except MarzbanError as e:
         await cq.answer(f"Ошибка: {e}", show_alert=True)
         return
-    await cq.message.edit_text(fmt_user_card(u), reply_markup=user_actions_kb(username))
+    await cq.message.edit_text(fmt_user_card(u, settings.marzban_base_url), reply_markup=user_actions_kb(username))
     await cq.answer("Сброшено")
 
 
 @router.callback_query(F.data.startswith("u:v:"))
-async def cb_user_revoke(cq: CallbackQuery, mb: MarzbanClient) -> None:
+async def cb_user_revoke(cq: CallbackQuery, mb: MarzbanClient, settings: Settings) -> None:
     username = cq.data[4:]
     try:
         u = await mb.revoke_subscription(username)
     except MarzbanError as e:
         await cq.answer(f"Ошибка: {e}", show_alert=True)
         return
-    await cq.message.edit_text(fmt_user_card(u), reply_markup=user_actions_kb(username))
+    await cq.message.edit_text(fmt_user_card(u, settings.marzban_base_url), reply_markup=user_actions_kb(username))
     await cq.answer("Подписка отозвана")
 
 
 @router.callback_query(F.data.startswith("u:t:"))
-async def cb_user_toggle(cq: CallbackQuery, mb: MarzbanClient) -> None:
+async def cb_user_toggle(cq: CallbackQuery, mb: MarzbanClient, settings: Settings) -> None:
     username = cq.data[4:]
     try:
         cur = await mb.user(username)
@@ -244,7 +245,7 @@ async def cb_user_toggle(cq: CallbackQuery, mb: MarzbanClient) -> None:
     except MarzbanError as e:
         await cq.answer(f"Ошибка: {e}", show_alert=True)
         return
-    await cq.message.edit_text(fmt_user_card(u), reply_markup=user_actions_kb(username))
+    await cq.message.edit_text(fmt_user_card(u, settings.marzban_base_url), reply_markup=user_actions_kb(username))
     await cq.answer("Статус обновлён")
 
 
